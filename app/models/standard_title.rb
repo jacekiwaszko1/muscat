@@ -104,4 +104,5 @@ class StandardTitle < ApplicationRecord
   def name
     return title
   end
+
 end

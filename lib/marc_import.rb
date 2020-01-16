@@ -5,10 +5,6 @@ require 'logger'
 
 class MarcImport
   
-  # Initializes MarcImport Class instance
-  # @param source_file [String] Filename
-  # @param model [String] Model Name
-  # @return [MarcImport] Instance
   def initialize(source_file, model, from = 0)
     #@log = Logger.new(Rails.root.join('log/', 'import.log'), 'daily')
     @from = from
@@ -32,9 +28,7 @@ class MarcImport
     MarcConfigCache.add_overlay(model, "#{Rails.root}/housekeeping/import/import_tags_source.yml") if @model == "Source"
   end
 
-  # Helper method to parse huge files with nokogiri.
-  # The block-parameter is used for the automatic Iteration and should not be set.
-  # @param filename [String] Filename
+  #Helper method to parse huge files with nokogiri
   def each_record(filename, &block)
     File.open(filename) do |file|
       Nokogiri::XML::Reader.from_io(file).each do |node|
@@ -45,9 +39,6 @@ class MarcImport
     end
   end
 
-  # Performs Import for the given Instance.
-  # @return [String] Results 
-  # @see #create_record
   def import
     each_record(@source_file) { |record|         
         rec = Nokogiri::XML(record.to_s)
@@ -59,8 +50,6 @@ class MarcImport
     puts @import_results
   end
 
-  # Creates a Record from a MarcXML String.
-  # @param buffer [String] MarcXML
   def create_record(buffer)
     @cnt += 1
     #@total_records += 1
@@ -76,7 +65,6 @@ class MarcImport
         # step 1.  update or create a new object
         model = Object.const_get(@model).find_by_id(marc.get_id)
         if !model
-          # @todo possibly unused variable "status"
           status = "created"
           if @model == "Catalogue"
             model = Object.const_get(@model).new(:id => marc.get_id, :name => marc.get_name, :author => marc.get_author, :revue_title=> marc.get_revue_title, :description => marc.get_description, :wf_owner => 1, :wf_stage => "published")
@@ -136,16 +124,16 @@ class MarcImport
         marc.suppress_scaffold_links
         marc.import
         
-        # step 3. resolve external values if it is a source
-        begin
+        # step 3 resolve external values if it is a source
+        #begin
           marc.root.resolve_externals if @model == "Source"
-        rescue => e
-          $stderr.puts
-          $stderr.puts "Marc Import: Could not resolve externals on record".red
-          $stderr.puts e.message.blue
-          $stderr.puts "Record Id: #{model.id}".magenta
-          $stderr.puts "#{marc.to_marc}"
-        end
+					#rescue => e
+          #$stderr.puts
+          #$stderr.puts "Marc Import: Could not resolve externals on record".red
+          #$stderr.puts e.message.blue
+          #$stderr.puts "Record Id: #{model.id}".magenta
+          #$stderr.puts "#{marc.to_marc}"
+					#end
         
         # step 4. associate Marc to record
         model.marc = marc
@@ -185,20 +173,20 @@ class MarcImport
           end
         end
         
-        # step 5. insert model into database
-        begin
+         # step 4. insert model into database
+        #begin
           model.save! #
 #          @log.info(@model+" record "+marc.get_id.to_s+" "+status)
 #        rescue ActiveRecord::RecordNotUnique
 #          @log.error(@model+" record "+marc.get_id.to_s+" import failed because record not unique")
-        rescue => e
-          $stderr.puts
-          $stderr.puts "Marc Import: Could not save the imported record".red
-          $stderr.puts e.message.blue
-          $stderr.puts "Record Id: #{model.id}".magenta
-          $stderr.puts "#{marc.to_marc}"
+        #rescue => e
+          #$stderr.puts
+          #$stderr.puts "Marc Import: Could not save the imported record".red
+          #$stderr.puts e.message.blue
+          #$stderr.puts "Record Id: #{model.id}".magenta
+          #$stderr.puts "#{marc.to_marc}"
           #puts e.backtrace.join("\n")
-        end
+					#end
         print "\rStarted: " + @start_time.strftime("%Y-%m-%d %H:%M:%S").green + " -- Record #{@cnt} of #{@total_records} processed".yellow
         #puts "Last offset: #{@total_records}, Last "+@model+" RISM ID: #{marc.first_occurance('001').content}"
       else
